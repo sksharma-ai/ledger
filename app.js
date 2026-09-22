@@ -36,6 +36,21 @@ let state = {
 };
 let reportOpenMonths = new Set(); // transient (not persisted) — which archived months are expanded
 
+<<<<<<< HEAD
+/* ---------------- PWA install ---------------- */
+let deferredInstallPrompt = null;
+let iosHintDismissed = false;
+const isStandalone = () => window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  render();
+});
+window.addEventListener("appinstalled", () => { deferredInstallPrompt = null; render(); });
+
+=======
+>>>>>>> 01612466609d40bdb4fcd6baaf5891d603b8f56f
 function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -60,17 +75,34 @@ function eventTotals(ev) {
   const travelTotal = (ev.travelLegs || []).reduce((s, t) => s + (Number(t.cost) || 0), 0);
   const isCommission = ev.type === "commission";
 
+<<<<<<< HEAD
+  let income = 0, manpower = 0, teamPaid = 0, selfPortion = 0;
+=======
   let income = 0, manpower = 0, teamPaid = 0;
+>>>>>>> 01612466609d40bdb4fcd6baaf5891d603b8f56f
   if (isCommission) {
     (ev.workers || []).forEach((w) => {
       const count = Number(w.count) || 0;
       const clientEach = Number(w.clientPayEach) || 0;
+<<<<<<< HEAD
+      const payEach = w.isMe ? 0 : (Number(w.payoutEach) || 0); // you don't pay yourself
+      const owedTotal = count * payEach;
+      income += count * clientEach;
+      manpower += owedTotal;
+      if (w.isMe) {
+        selfPortion += count * clientEach; // full client-pay for your own attendance is your income, not commission
+      } else {
+        if (w.payoutStatus === "Paid") teamPaid += owedTotal;
+        else if (w.payoutStatus === "Partial") teamPaid += Number(w.payoutPaid) || 0;
+      }
+=======
       const payEach = Number(w.payoutEach) || 0;
       const owedTotal = count * payEach;
       income += count * clientEach;
       manpower += owedTotal;
       if (w.payoutStatus === "Paid") teamPaid += owedTotal;
       else if (w.payoutStatus === "Partial") teamPaid += Number(w.payoutPaid) || 0;
+>>>>>>> 01612466609d40bdb4fcd6baaf5891d603b8f56f
     });
   } else {
     income = Number(ev.incomeAmount) || 0;
@@ -83,7 +115,11 @@ function eventTotals(ev) {
   const clientPending = Math.max(0, income - received);
   const teamBalance = Math.max(0, manpower - teamPaid);
 
+<<<<<<< HEAD
+  return { expTotal, travelTotal, manpower, income, totalCost, received, clientPending, teamPaid, teamBalance, selfPortion, netActual: received - totalCost };
+=======
   return { expTotal, travelTotal, manpower, income, totalCost, received, clientPending, teamPaid, teamBalance, netActual: received - totalCost };
+>>>>>>> 01612466609d40bdb4fcd6baaf5891d603b8f56f
 }
 function allEventTotals() {
   return [...state.events]
@@ -97,7 +133,14 @@ function allEventTotals() {
 }
 function eventsEarnings() {
   let ownNet = 0, commissionNet = 0;
+<<<<<<< HEAD
+  allEventTotals().forEach(({ ev, t }) => {
+    if (ev.type === "commission") { ownNet += t.selfPortion; commissionNet += t.netActual - t.selfPortion; }
+    else ownNet += t.netActual;
+  });
+=======
   allEventTotals().forEach(({ ev, t }) => { if (ev.type === "commission") commissionNet += t.netActual; else ownNet += t.netActual; });
+>>>>>>> 01612466609d40bdb4fcd6baaf5891d603b8f56f
   return { ownNet, commissionNet, total: ownNet + commissionNet };
 }
 function personalTotal() { return state.expenses.reduce((s, e) => s + (Number(e.amount) || 0), 0); }
@@ -142,12 +185,26 @@ function monthReport(gk) {
   const evs = allEventTotals().filter(({ ev }) => monthGroupKey(ev.startDate) === gk);
   const px = state.expenses.filter((e) => monthGroupKey(e.date) === gk).sort((a, b) => (a.date < b.date ? 1 : -1));
   let ownNet = 0, commissionNet = 0;
+<<<<<<< HEAD
+  evs.forEach(({ ev, t }) => {
+    if (ev.type === "commission") { ownNet += t.selfPortion; commissionNet += t.netActual - t.selfPortion; }
+    else ownNet += t.netActual;
+  });
+=======
   evs.forEach(({ ev, t }) => { if (ev.type === "commission") commissionNet += t.netActual; else ownNet += t.netActual; });
+>>>>>>> 01612466609d40bdb4fcd6baaf5891d603b8f56f
   const personal = px.reduce((s, e) => s + (Number(e.amount) || 0), 0);
   const catMap = {};
   px.forEach((e) => { const cat = e.category === "Other" && e.customName ? e.customName : e.category; catMap[cat] = (catMap[cat] || 0) + (Number(e.amount) || 0); });
   return {
+<<<<<<< HEAD
+    gk, label: monthGroupLabel(gk),
+    ownEvents: evs.filter(({ ev }) => ev.type !== "commission"),
+    manpowerEvents: evs.filter(({ ev }) => ev.type === "commission"),
+    personalExpenses: px,
+=======
     gk, label: monthGroupLabel(gk), events: evs, personalExpenses: px,
+>>>>>>> 01612466609d40bdb4fcd6baaf5891d603b8f56f
     ownNet, commissionNet, totalEarned: ownNet + commissionNet, personal, combined: ownNet + commissionNet - personal,
     catBreakdown: Object.entries(catMap).sort((a, b) => b[1] - a[1]),
   };
@@ -228,6 +285,19 @@ function renderHeader() {
         </div>
       </div>
 
+<<<<<<< HEAD
+      ${!isStandalone() && deferredInstallPrompt ? `
+      <button class="icon-btn" data-action="install-app" style="width:100%;justify-content:center;margin-bottom:10px;color:var(--text);border-color:var(--accent);">
+        ${ICONS.download} Install app on this phone
+      </button>` : ""}
+      ${!isStandalone() && !deferredInstallPrompt && isIOS() && !iosHintDismissed ? `
+      <div class="overview-panel" style="margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:8px;">
+        <span style="font-size:11.5px;color:var(--text-muted);">Install: tap Share → "Add to Home Screen"</span>
+        <button class="remove-btn" data-action="dismiss-ios-hint">${ICONS.x}</button>
+      </div>` : ""}
+
+=======
+>>>>>>> 01612466609d40bdb4fcd6baaf5891d603b8f56f
       <div class="ticker">
         <span>This month</span>
         <span class="tk-in"><b>Earned ${fmt(thisMonthEarned(), state.currency)}</b></span>
@@ -307,12 +377,33 @@ function renderMonthReportBlock(r, open) {
     </div>
 
     <div class="sub-panel">
+<<<<<<< HEAD
+      <div class="sub-header"><span>My own events (${r.ownEvents.length})</span></div>
+      ${r.ownEvents.length === 0 ? `<p class="empty-mini">No own events this month.</p>` : r.ownEvents.map(({ ev, t }) => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border-soft);font-size:12px;gap:8px;">
+          <div style="min-width:0;">
+            <div style="font-weight:500;">${esc(ev.name)}</div>
+            <div class="stat-sub">${esc(ev.startDate)}${ev.endDate ? " → " + esc(ev.endDate) : ""} · ${ev.paymentStatus}</div>
+          </div>
+          <span class="mono" style="color:${t.netActual >= 0 ? "var(--green)" : "var(--red)"};flex-shrink:0;">${fmt(t.netActual, state.currency)}</span>
+        </div>`).join("")}
+    </div>
+
+    <div class="sub-panel">
+      <div class="sub-header"><span>Manpower events (${r.manpowerEvents.length})</span></div>
+      ${r.manpowerEvents.length === 0 ? `<p class="empty-mini">No manpower events this month.</p>` : r.manpowerEvents.map(({ ev, t }) => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border-soft);font-size:12px;gap:8px;">
+          <div style="min-width:0;">
+            <div style="font-weight:500;">${esc(ev.name)}</div>
+            <div class="stat-sub">${esc(ev.startDate)}${ev.endDate ? " → " + esc(ev.endDate) : ""} · ${ev.paymentStatus}${t.selfPortion > 0 ? ` · incl. your own ${fmt(t.selfPortion, state.currency)}` : ""}</div>
+=======
       <div class="sub-header"><span>Events (${r.events.length})</span></div>
       ${r.events.length === 0 ? `<p class="empty-mini">No events this month.</p>` : r.events.map(({ ev, t }) => `
         <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border-soft);font-size:12px;gap:8px;">
           <div style="min-width:0;">
             <div style="font-weight:500;">${esc(ev.name)}</div>
             <div class="stat-sub">${esc(ev.startDate)}${ev.endDate ? " → " + esc(ev.endDate) : ""} · ${ev.type === "commission" ? "Manpower" : "My event"} · ${ev.paymentStatus}</div>
+>>>>>>> 01612466609d40bdb4fcd6baaf5891d603b8f56f
           </div>
           <span class="mono" style="color:${t.netActual >= 0 ? "var(--green)" : "var(--red)"};flex-shrink:0;">${fmt(t.netActual, state.currency)}</span>
         </div>`).join("")}
@@ -408,10 +499,40 @@ function renderEventCard({ ev, t }) {
 
       ${isCommission ? `
       <div class="sub-panel" style="border-top:none;border:1px solid var(--border-soft);border-radius:9px;margin-top:8px;">
+<<<<<<< HEAD
+        <div class="sub-header">
+          <span>${ICONS.users} People sent</span>
+          <span style="display:flex;gap:10px;align-items:center;">
+            <button class="plus-btn" data-action="add-self-worker" data-event-id="${ev.id}" title="Add yourself as attending" style="font-size:10.5px;display:flex;align-items:center;gap:2px;width:auto;color:var(--text-muted);">${ICONS.plus} Me</button>
+            <button class="plus-btn" data-action="add-worker" data-event-id="${ev.id}" title="Add a person you sent">${ICONS.plus}</button>
+          </span>
+        </div>
+        ${(ev.workers || []).map((w) => {
+          const count = Number(w.count) || 0;
+          const clientEach = Number(w.clientPayEach) || 0;
+          if (w.isMe) {
+            const earn = count * clientEach;
+            return `
+            <div class="row-line" style="align-items:flex-end;background:var(--accent-soft);border-radius:8px;padding:6px 6px;margin-bottom:6px;">
+              <input class="flex1" data-field="name" data-event-id="${ev.id}" data-worker-id="${w.id}" value="${esc(w.name)}" placeholder="Me" style="min-width:70px;" />
+              <div style="width:52px;flex-shrink:0;">
+                <div class="stat-sub" style="margin-bottom:1px;">count</div>
+                <input class="mono" type="number" min="1" data-field="count" data-event-id="${ev.id}" data-worker-id="${w.id}" value="${w.count}" />
+              </div>
+              <div style="width:90px;flex-shrink:0;">
+                <div class="stat-sub" style="margin-bottom:1px;">client pays me each</div>
+                <input class="mono" type="number" data-field="clientPayEach" data-event-id="${ev.id}" data-worker-id="${w.id}" value="${w.clientPayEach}" />
+              </div>
+              <button class="remove-btn" data-action="remove-worker" data-event-id="${ev.id}" data-worker-id="${w.id}">${ICONS.x}</button>
+              <div style="width:100%;font-size:10.5px;color:var(--green);margin-top:2px;">You don't pay yourself — this counts as your own earnings: <b class="mono">${fmt(earn, state.currency)}</b></div>
+            </div>`;
+          }
+=======
         <div class="sub-header"><span>${ICONS.users} People sent</span><button class="plus-btn" data-action="add-worker" data-event-id="${ev.id}">${ICONS.plus}</button></div>
         ${(ev.workers || []).map((w) => {
           const count = Number(w.count) || 0;
           const clientEach = Number(w.clientPayEach) || 0;
+>>>>>>> 01612466609d40bdb4fcd6baaf5891d603b8f56f
           const payEach = Number(w.payoutEach) || 0;
           const marginTotal = (clientEach - payEach) * count;
           const owed = count * payEach;
@@ -449,7 +570,11 @@ function renderEventCard({ ev, t }) {
               <span style="font-size:10.5px;color:${balance > 0 ? "var(--red)" : "var(--text-faint)"};margin-left:auto;">bal ${fmt(balance, state.currency)}</span>
             </div>
           </div>`;
+<<<<<<< HEAD
+        }).join("") || `<p class="empty-mini">No one added yet. Add a name and how many you sent, or add yourself if you're attending too.</p>`}
+=======
         }).join("") || `<p class="empty-mini">No one added yet. Add a name and how many you sent.</p>`}
+>>>>>>> 01612466609d40bdb4fcd6baaf5891d603b8f56f
       </div>` : ""}
 
       <div class="net-row">
@@ -458,7 +583,11 @@ function renderEventCard({ ev, t }) {
       </div>
 
       <button class="expand-btn" data-action="toggle-expand" data-event-id="${ev.id}">
+<<<<<<< HEAD
+        ${ev.expanded ? ICONS.chevUp : ICONS.chevDown} ${ev.expanded ? "Collapse" : "More details (expenses, travel, client report)"}
+=======
         ${ev.expanded ? ICONS.chevUp : ICONS.chevDown} ${ev.expanded ? "Collapse" : "Expenses & travel"}
+>>>>>>> 01612466609d40bdb4fcd6baaf5891d603b8f56f
       </button>
     </div>
 
@@ -488,7 +617,38 @@ function renderEventCard({ ev, t }) {
           <input class="amt-input mono" type="number" data-field="cost" data-event-id="${ev.id}" data-leg-id="${leg.id}" value="${leg.cost}" />
           <button class="remove-btn" data-action="remove-leg" data-event-id="${ev.id}" data-leg-id="${leg.id}">${ICONS.x}</button>
         </div>`).join("") || `<p class="empty-mini">No travel legs logged.</p>`}
+<<<<<<< HEAD
+    </div>
+
+    <div class="sub-panel">
+      <div class="sub-header"><span>Client & report</span></div>
+      <div class="row-line">
+        <input type="tel" class="flex1" placeholder="Client phone (for WhatsApp)" data-field="clientPhone" data-event-id="${ev.id}" value="${esc(ev.clientPhone || "")}" />
+      </div>
+      <div class="row-line">
+        <div style="flex:1;"><div class="stat-sub" style="margin-bottom:1px;">Reporting time (told)</div><input type="time" data-field="reportingTime" data-event-id="${ev.id}" value="${esc(ev.reportingTime || "")}" /></div>
+        <div style="flex:1;"><div class="stat-sub" style="margin-bottom:1px;">Login</div><input type="time" data-field="loginTime" data-event-id="${ev.id}" value="${esc(ev.loginTime || "")}" /></div>
+        <div style="flex:1;"><div class="stat-sub" style="margin-bottom:1px;">Logout</div><input type="time" data-field="logoutTime" data-event-id="${ev.id}" value="${esc(ev.logoutTime || "")}" /></div>
+      </div>
+      <div class="row-line" style="align-items:flex-start;gap:14px;">
+        <div>
+          <div class="stat-sub" style="margin-bottom:3px;">Login photo</div>
+          ${ev.loginPhoto ? `<div style="display:flex;align-items:center;gap:4px;margin-bottom:4px;"><img src="${ev.loginPhoto}" style="width:44px;height:44px;object-fit:cover;border-radius:6px;border:1px solid var(--border-soft);" /><button class="remove-btn" data-action="remove-photo" data-event-id="${ev.id}" data-field="loginPhoto">${ICONS.x}</button></div>` : ""}
+          <input type="file" accept="image/*" capture="environment" data-field="loginPhoto" data-event-id="${ev.id}" style="font-size:10px;width:120px;" />
+        </div>
+        <div>
+          <div class="stat-sub" style="margin-bottom:3px;">Logout photo</div>
+          ${ev.logoutPhoto ? `<div style="display:flex;align-items:center;gap:4px;margin-bottom:4px;"><img src="${ev.logoutPhoto}" style="width:44px;height:44px;object-fit:cover;border-radius:6px;border:1px solid var(--border-soft);" /><button class="remove-btn" data-action="remove-photo" data-event-id="${ev.id}" data-field="logoutPhoto">${ICONS.x}</button></div>` : ""}
+          <input type="file" accept="image/*" capture="environment" data-field="logoutPhoto" data-event-id="${ev.id}" style="font-size:10px;width:120px;" />
+        </div>
+      </div>
+      <button class="add-btn" data-action="send-whatsapp" data-event-id="${ev.id}" style="margin:10px 0 4px;">Send report on WhatsApp</button>
+      <div style="font-size:10px;color:var(--text-faint);line-height:1.5;">Sends event name, date, reporting/login/logout times, people sent, and amount as text. Photos aren't auto-attached (WhatsApp's link format is text-only) — open them above and attach manually if needed.</div>
+    </div>
+    ` : ""}
+=======
     </div>` : ""}
+>>>>>>> 01612466609d40bdb4fcd6baaf5891d603b8f56f
   </div>`;
 }
 
@@ -583,6 +743,10 @@ function addEvent() {
   state.events.unshift({
     id: uid(), name: "New Event", startDate: new Date().toISOString().slice(0, 10), endDate: "", client: "",
     type: "self", incomeAmount: 0, receivedAmount: 0, paymentStatus: "Pending",
+<<<<<<< HEAD
+    clientPhone: "", reportingTime: "", loginTime: "", logoutTime: "", loginPhoto: "", logoutPhoto: "",
+=======
+>>>>>>> 01612466609d40bdb4fcd6baaf5891d603b8f56f
     workers: [], expenses: [], travelLegs: [], expanded: true,
   });
 }
@@ -599,6 +763,16 @@ document.addEventListener("click", (e) => {
   if (action === "toggle-theme") { state.theme = state.theme === "dark" ? "light" : "dark"; document.documentElement.setAttribute("data-theme", state.theme); persist(); render(); return; }
   if (action === "toggle-currency") { state.currency = state.currency === "INR" ? "USD" : "INR"; persist(); render(); return; }
   if (action === "export-excel") { exportToExcel(); return; }
+<<<<<<< HEAD
+  if (action === "install-app") {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    deferredInstallPrompt.userChoice.finally(() => { deferredInstallPrompt = null; render(); });
+    return;
+  }
+  if (action === "dismiss-ios-hint") { iosHintDismissed = true; render(); return; }
+=======
+>>>>>>> 01612466609d40bdb4fcd6baaf5891d603b8f56f
   if (action === "switch-tab") { state.tab = btn.dataset.tab; render(); return; }
   if (action === "toggle-report-month") {
     const gk = btn.dataset.monthGk;
@@ -616,7 +790,12 @@ document.addEventListener("click", (e) => {
   if (action === "toggle-expand") { const ev = findEvent(btn.dataset.eventId); if (ev) ev.expanded = !ev.expanded; render(); return; }
   if (action === "set-type") { const ev = findEvent(btn.dataset.eventId); if (ev) ev.type = btn.dataset.type; persist(); render(); return; }
 
+<<<<<<< HEAD
+  if (action === "add-worker") { const ev = findEvent(btn.dataset.eventId); if (ev) { ev.workers = ev.workers || []; ev.workers.push({ id: uid(), name: "", count: 1, clientPayEach: 0, payoutEach: 0, payoutStatus: "Pending", payoutPaid: 0, isMe: false }); persist(); render(); } return; }
+  if (action === "add-self-worker") { const ev = findEvent(btn.dataset.eventId); if (ev) { ev.workers = ev.workers || []; ev.workers.push({ id: uid(), name: "Me", count: 1, clientPayEach: 0, payoutEach: 0, payoutStatus: "Paid", payoutPaid: 0, isMe: true }); persist(); render(); } return; }
+=======
   if (action === "add-worker") { const ev = findEvent(btn.dataset.eventId); if (ev) { ev.workers = ev.workers || []; ev.workers.push({ id: uid(), name: "", count: 1, clientPayEach: 0, payoutEach: 0, payoutStatus: "Pending", payoutPaid: 0 }); persist(); render(); } return; }
+>>>>>>> 01612466609d40bdb4fcd6baaf5891d603b8f56f
   if (action === "remove-worker") { const ev = findEvent(btn.dataset.eventId); if (ev) { ev.workers = ev.workers.filter((w) => w.id !== btn.dataset.workerId); persist(); render(); } return; }
 
   if (action === "add-expense") { const ev = findEvent(btn.dataset.eventId); if (ev) { ev.expenses = ev.expenses || []; ev.expenses.push({ id: uid(), category: "Food", customName: "", amount: 0 }); persist(); render(); } return; }
@@ -627,13 +806,32 @@ document.addEventListener("click", (e) => {
 
   if (action === "add-expense-personal") { addExpensePersonal(); persist(); render(); return; }
   if (action === "remove-expense-personal") { state.expenses = state.expenses.filter((x) => x.id !== btn.dataset.pexpenseId); persist(); render(); return; }
+<<<<<<< HEAD
+  if (action === "send-whatsapp") { const ev = findEvent(btn.dataset.eventId); if (ev) sendWhatsAppReport(ev); return; }
+  if (action === "remove-photo") { const ev = findEvent(btn.dataset.eventId); if (ev) { ev[btn.dataset.field] = ""; persist(); render(); } return; }
+=======
+>>>>>>> 01612466609d40bdb4fcd6baaf5891d603b8f56f
 });
 
 document.addEventListener("change", (e) => {
   const el = e.target;
   const field = el.dataset.field;
   if (!field) return;
+<<<<<<< HEAD
+
+  if (el.type === "file") {
+    const file = el.files && el.files[0];
+    if (!file) return;
+    const ev = findEvent(el.dataset.eventId);
+    if (!ev) return;
+    readAndResizePhoto(file, (dataUrl) => { ev[field] = dataUrl; persist(); render(); });
+    return;
+  }
+
+  const val = el.value;
+=======
   const val = el.type === "number" ? el.value : el.value;
+>>>>>>> 01612466609d40bdb4fcd6baaf5891d603b8f56f
 
   if (el.dataset.eventId && el.dataset.expenseId) {
     const ev = findEvent(el.dataset.eventId); const exp = ev?.expenses.find((x) => x.id === el.dataset.expenseId);
@@ -656,6 +854,48 @@ document.addEventListener("change", (e) => {
   render();
 });
 
+<<<<<<< HEAD
+/* ---------------- photo capture (resized before storing, keeps localStorage small) ---------------- */
+function readAndResizePhoto(file, cb) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, 480 / img.width);
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(img.width * scale));
+      canvas.height = Math.max(1, Math.round(img.height * scale));
+      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+      cb(canvas.toDataURL("image/jpeg", 0.6));
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+/* ---------------- WhatsApp report ---------------- */
+function buildWhatsAppMessage(ev, t) {
+  const people = ev.type === "commission" ? (ev.workers || []).reduce((s, w) => s + (Number(w.count) || 0), 0) : 1;
+  const dateStr = ev.endDate && ev.endDate !== ev.startDate ? `${ev.startDate} to ${ev.endDate}` : ev.startDate;
+  const lines = [`*${ev.name}*`, `Date: ${dateStr}`];
+  if (ev.reportingTime) lines.push(`Reporting time: ${ev.reportingTime}`);
+  if (ev.loginTime) lines.push(`Login: ${ev.loginTime}`);
+  if (ev.logoutTime) lines.push(`Logout: ${ev.logoutTime}`);
+  lines.push(`People sent: ${people}`);
+  lines.push(`Amount: ${fmt(t.income, state.currency)}${t.clientPending > 0 ? ` (Pending: ${fmt(t.clientPending, state.currency)})` : " (Received)"}`);
+  return lines.join("\n");
+}
+function sendWhatsAppReport(ev) {
+  const t = eventTotals(ev);
+  const msg = buildWhatsAppMessage(ev, t);
+  let phone = (ev.clientPhone || "").replace(/\D/g, "");
+  if (phone.length === 10) phone = "91" + phone; // default to India country code for a bare 10-digit number
+  const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+  window.open(url, "_blank");
+}
+
+=======
+>>>>>>> 01612466609d40bdb4fcd6baaf5891d603b8f56f
 /* ---------------- excel export ---------------- */
 function exportToExcel() {
   if (typeof XLSX === "undefined") { alert("Excel library not loaded."); return; }
@@ -676,10 +916,18 @@ function exportToExcel() {
   const workerData = [];
   evRows.filter((ev) => ev.type === "commission").forEach((ev) => {
     (ev.workers || []).forEach((w) => {
+<<<<<<< HEAD
+      const count = Number(w.count) || 0, clientEach = Number(w.clientPayEach) || 0;
+      const payEach = w.isMe ? 0 : (Number(w.payoutEach) || 0);
+      const owed = count * payEach;
+      const paid = w.isMe ? owed : (w.payoutStatus === "Paid" ? owed : w.payoutStatus === "Partial" ? (Number(w.payoutPaid) || 0) : 0);
+      workerData.push([ev.startDate, ev.name, (w.name || "") + (w.isMe ? " (Me)" : ""), count, clientEach, payEach, (clientEach - payEach) * count, w.isMe ? "N/A — self" : (w.payoutStatus || "Pending"), paid, owed - paid]);
+=======
       const count = Number(w.count) || 0, clientEach = Number(w.clientPayEach) || 0, payEach = Number(w.payoutEach) || 0;
       const owed = count * payEach;
       const paid = w.payoutStatus === "Paid" ? owed : w.payoutStatus === "Partial" ? (Number(w.payoutPaid) || 0) : 0;
       workerData.push([ev.startDate, ev.name, w.name || "", count, clientEach, payEach, (clientEach - payEach) * count, w.payoutStatus || "Pending", paid, owed - paid]);
+>>>>>>> 01612466609d40bdb4fcd6baaf5891d603b8f56f
     });
   });
   const wsWorkers = XLSX.utils.aoa_to_sheet([workerHeader, ...workerData]);
